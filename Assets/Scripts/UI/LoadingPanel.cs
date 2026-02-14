@@ -24,7 +24,7 @@ namespace UrbanScanVR.UI
 
             // === Заголовок ===
             UIManager.CreateText(parent, "LoadingTitle", "Загрузка модели...",
-                new Vector2(0, 150), 36, new Color(0.3f, 0.7f, 1f));
+                new Vector2(0, 150), 56, new Color(0.3f, 0.7f, 1f));
 
             // === Прогресс-бар (фон) ===
             var barBG = new GameObject("ProgressBarBG");
@@ -49,16 +49,16 @@ namespace UrbanScanVR.UI
 
             // === Процент ===
             _percentText = UIManager.CreateText(parent, "PercentText", "0%",
-                new Vector2(0, -30), 28, Color.white);
+                new Vector2(0, -30), 42, Color.white);
 
             // === Статус ===
             _statusText = UIManager.CreateText(parent, "StatusText", "Подготовка...",
-                new Vector2(0, -80), 22, new Color(0.6f, 0.6f, 0.7f));
+                new Vector2(0, -80), 32, new Color(0.6f, 0.6f, 0.7f));
 
             // === Подсказка ===
             UIManager.CreateText(parent, "Hint",
                 "Выберите файл на мониторе компьютера",
-                new Vector2(0, -160), 18, new Color(0.5f, 0.5f, 0.5f));
+                new Vector2(0, -160), 28, new Color(0.5f, 0.5f, 0.5f));
         }
 
         /// <summary>Обновить прогресс загрузки</summary>

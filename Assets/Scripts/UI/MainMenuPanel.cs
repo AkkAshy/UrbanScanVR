@@ -29,15 +29,15 @@ namespace UrbanScanVR.UI
 
             // === Заголовок ===
             _titleText = UIManager.CreateText(parent, "Title", "UrbanScan VR",
-                new Vector2(0, 280), 48, new Color(0.3f, 0.7f, 1f));
+                new Vector2(0, 280), 72, new Color(0.3f, 0.7f, 1f));
 
             // === Подзаголовок ===
             UIManager.CreateText(parent, "Subtitle", "Просмотр 3D-сцен из LiDAR сканов",
-                new Vector2(0, 220), 24, new Color(0.7f, 0.7f, 0.7f));
+                new Vector2(0, 210), 36, new Color(0.7f, 0.7f, 0.7f));
 
             // === VR статус ===
             _vrStatusText = UIManager.CreateText(parent, "VRStatus", "VR: подключён",
-                new Vector2(0, 170), 20, Color.green);
+                new Vector2(0, 155), 30, Color.green);
 
             // === Контейнер кнопок (нормальный режим) ===
             _buttonsContainer = new GameObject("Buttons");
@@ -72,7 +72,7 @@ namespace UrbanScanVR.UI
 
             UIManager.CreateText(_vrNotConnectedContainer.transform, "ConnectMsg",
                 "Подключите VR-шлем\nи нажмите \"Повторить\"",
-                new Vector2(0, 50), 36, Color.white);
+                new Vector2(0, 50), 48, Color.white);
 
             UIManager.CreateButton(_vrNotConnectedContainer.transform, "RetryButton",
                 "Повторить", new Vector2(0, -80), OnRetryVR);
@@ -81,7 +81,7 @@ namespace UrbanScanVR.UI
 
             // === Нижняя строка ===
             UIManager.CreateText(parent, "Footer", "iMax IT Company  |  UrbanScan v1.0",
-                new Vector2(0, -340), 16, new Color(0.4f, 0.4f, 0.4f));
+                new Vector2(0, -340), 24, new Color(0.4f, 0.4f, 0.4f));
         }
 
         /// <summary>Показать экран "VR не подключен"</summary>

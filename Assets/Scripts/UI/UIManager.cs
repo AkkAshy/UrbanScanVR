@@ -22,9 +22,9 @@ namespace UrbanScanVR.UI
         GameObject _canvasGO;
 
         // === Настройки ===
-        const float CANVAS_DISTANCE = 2.5f;   // метры перед игроком
+        const float CANVAS_DISTANCE = 2.0f;   // метры перед игроком
         const float CANVAS_HEIGHT = 1.5f;      // метры от пола
-        const float CANVAS_SCALE = 0.001f;     // масштаб (1 pixel = 1mm)
+        const float CANVAS_SCALE = 0.002f;     // масштаб (увеличенный для читаемости)
         const int CANVAS_WIDTH = 1200;
         const int CANVAS_HEIGHT_PX = 800;
 
@@ -93,11 +93,11 @@ namespace UrbanScanVR.UI
 
             // Заголовок
             CreateText(_errorPanel.transform, "ErrorTitle", "Ошибка",
-                new Vector2(0, 100), 36, Color.red);
+                new Vector2(0, 100), 56, Color.red);
 
             // Текст ошибки
             CreateText(_errorPanel.transform, "ErrorMessage", "",
-                new Vector2(0, 0), 24, Color.white);
+                new Vector2(0, 0), 36, Color.white);
 
             // Кнопка ОК
             CreateButton(_errorPanel.transform, "OKButton", "OK",
@@ -296,12 +296,12 @@ namespace UrbanScanVR.UI
 
             var uiText = textGO.AddComponent<Text>();
             uiText.text = label;
-            uiText.fontSize = 28;
+            uiText.fontSize = 40;
             uiText.color = Color.white;
             uiText.alignment = TextAnchor.MiddleCenter;
             uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (uiText.font == null)
-                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 28);
+                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 40);
 
             return button;
         }
