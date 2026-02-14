@@ -1,0 +1,38 @@
+# Генерация .alf файла для ручной активации Unity лицензии
+# 1. Запусти этот workflow
+# 2. Скачай artifact с .alf файлом
+# 3. Загрузи .alf на https://license.unity3d.com/manual
+# 4. Скачай .ulf файл
+# 5. Добавь содержимое .ulf в GitHub Secret UNITY_LICENSE
+
+name: Get Unity License
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  activate:
+    name: Generate .alf activation file
+    runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-2022.3.45f1-windows-mono-3
+
+    steps:
+      - name: Generate activation file
+        run: |
+          unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout -quit || true
+          ls -la *.alf || echo "No .alf found in current dir"
+          ls -la /Unity*.alf || echo "No .alf found in root"
+          # Копируем .alf куда сможем найти
+          mkdir -p /output
+          cp *.alf /output/ 2>/dev/null || cp /Unity*.alf /output/ 2>/dev/null || true
+          ls -la /output/
+
+      - name: Upload .alf
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-activation-file
+          path: |
+            *.alf
+            /output/*.alf
+          retention-days: 1
