@@ -1,38 +1,72 @@
-# Генерация .alf файла для ручной активации Unity лицензии
+# Активация Unity Personal лицензии на GitHub runner
+# Результат: .ulf файл в артефакте → содержимое добавить в UNITY_LICENSE secret
+#
+# Шаги:
 # 1. Запусти этот workflow
-# 2. Скачай artifact с .alf файлом
-# 3. Загрузи .alf на https://license.unity3d.com/manual
-# 4. Скачай .ulf файл
-# 5. Добавь содержимое .ulf в GitHub Secret UNITY_LICENSE
+# 2. Unity активируется через email/password
+# 3. .ulf файл загружается как artifact
+# 4. Скачай artifact, скопируй содержимое .ulf в GitHub Secret UNITY_LICENSE
 
-name: Get Unity License
+name: Activate Unity License
 
 on:
   workflow_dispatch: {}
 
 jobs:
   activate:
-    name: Generate .alf activation file
+    name: Activate Personal License
     runs-on: ubuntu-latest
     container:
       image: unityci/editor:ubuntu-2022.3.45f1-windows-mono-3
 
     steps:
-      - name: Generate activation file
+      - name: Activate Unity
+        continue-on-error: true
         run: |
-          unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout -quit || true
-          ls -la *.alf || echo "No .alf found in current dir"
-          ls -la /Unity*.alf || echo "No .alf found in root"
-          # Копируем .alf куда сможем найти
-          mkdir -p /output
-          cp *.alf /output/ 2>/dev/null || cp /Unity*.alf /output/ 2>/dev/null || true
-          ls -la /output/
+          echo "=== Attempting Unity activation ==="
+          unity-editor \
+            -batchmode \
+            -nographics \
+            -quit \
+            -logFile /dev/stdout \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD" \
+            || true
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
 
-      - name: Upload .alf
+      - name: Find and copy license file
+        run: |
+          echo "=== Searching for license files ==="
+          # Новый формат (Unity 2022+)
+          find / -name "*.xml" -path "*/Unity/*" -type f 2>/dev/null | head -20
+          find / -name "*.ulf" -type f 2>/dev/null | head -20
+          find / -name "*lic*" -path "*/Unity/*" -type f 2>/dev/null | head -20
+
+          mkdir -p /output
+
+          # Копируем все возможные файлы лицензии
+          cp /root/.local/share/unity3d/Unity/Unity_lic.ulf /output/ 2>/dev/null || true
+          cp /root/.local/share/unity3d/Unity/UnityEntitlementLicense.xml /output/ 2>/dev/null || true
+
+          # Ищем в других местах
+          find / -name "Unity_lic.ulf" -exec cp {} /output/ \; 2>/dev/null || true
+          find / -name "UnityEntitlementLicense.xml" -exec cp {} /output/ \; 2>/dev/null || true
+
+          echo "=== Files found ==="
+          ls -la /output/ || echo "No files found"
+
+          # Показываем содержимое (для отладки)
+          for f in /output/*; do
+            echo "--- $f ---"
+            head -5 "$f" 2>/dev/null || true
+          done
+
+      - name: Upload license files
         uses: actions/upload-artifact@v4
         with:
-          name: unity-activation-file
-          path: |
-            *.alf
-            /output/*.alf
+          name: unity-license-files
+          path: /output/
           retention-days: 1
+          if-no-files-found: warn

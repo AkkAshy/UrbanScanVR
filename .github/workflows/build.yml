@@ -1,5 +1,6 @@
 # Сборка UrbanScanVR — Windows x64 Standalone
-# Требует UNITY_LICENSE в GitHub Secrets (получи через activate.yml)
+# Требует UNITY_EMAIL и UNITY_PASSWORD в GitHub Secrets
+# Опционально: UNITY_LICENSE (содержимое .ulf файла из activate.yml)
 
 name: Build UrbanScanVR
 
