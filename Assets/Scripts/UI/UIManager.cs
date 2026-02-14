@@ -19,6 +19,7 @@ namespace UrbanScanVR.UI
         // === Компоненты ===
         Canvas _canvas;
         GameObject _canvasGO;
+        GameObject _bgCanvasGO;
 
         // === Настройки ===
         const float CANVAS_DISTANCE = 2.0f;
@@ -62,32 +63,54 @@ namespace UrbanScanVR.UI
             PositionCanvasInFrontOfPlayer();
         }
 
-        /// <summary>Фоновое изображение на весь Canvas из Resources/background</summary>
+        /// <summary>
+        /// Фоновое изображение на весь экран.
+        /// Отдельный ScreenSpace Canvas, рендерится ПОД основным World Space UI.
+        /// </summary>
         void CreateBackground()
         {
             var bgTex = Resources.Load<Texture2D>("background");
             if (bgTex == null) return;
 
-            var bgGO = new GameObject("Background");
-            bgGO.transform.SetParent(_canvasGO.transform, false);
+            // Отдельный Canvas — ScreenSpace, поверх камеры, под UI
+            _bgCanvasGO = new GameObject("BG Canvas");
+            _bgCanvasGO.transform.SetParent(transform);
 
-            var bgRT = bgGO.AddComponent<RectTransform>();
-            bgRT.anchorMin = Vector2.zero;
-            bgRT.anchorMax = Vector2.one;
-            bgRT.offsetMin = Vector2.zero;
-            bgRT.offsetMax = Vector2.zero;
+            var bgCanvas = _bgCanvasGO.AddComponent<Canvas>();
+            bgCanvas.renderMode = RenderMode.ScreenSpaceCamera;
 
-            var bgImg = bgGO.AddComponent<Image>();
+            // Привязываем к камере XR
+            var xrOrigin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+            if (xrOrigin != null && xrOrigin.Camera != null)
+            {
+                bgCanvas.worldCamera = xrOrigin.Camera;
+                bgCanvas.planeDistance = 10f; // далеко, чтобы за UI
+            }
+
+            bgCanvas.sortingOrder = -10; // рендерим ДО основного UI
+
+            var bgScaler = _bgCanvasGO.AddComponent<CanvasScaler>();
+            bgScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            bgScaler.referenceResolution = new Vector2(1920, 1080);
+
+            // Картинка на весь экран
+            var imgGO = new GameObject("BGImage");
+            imgGO.transform.SetParent(_bgCanvasGO.transform, false);
+
+            var imgRT = imgGO.AddComponent<RectTransform>();
+            imgRT.anchorMin = Vector2.zero;
+            imgRT.anchorMax = Vector2.one;
+            imgRT.offsetMin = Vector2.zero;
+            imgRT.offsetMax = Vector2.zero;
+
+            var bgImg = imgGO.AddComponent<Image>();
             bgImg.sprite = Sprite.Create(bgTex,
                 new Rect(0, 0, bgTex.width, bgTex.height),
                 new Vector2(0.5f, 0.5f));
             bgImg.type = Image.Type.Simple;
             bgImg.preserveAspect = false;
-
-            // Затемняем чтобы карточка и текст читались
-            bgImg.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            bgImg.color = new Color(0.35f, 0.35f, 0.35f, 1f);
             bgImg.raycastTarget = false;
-            bgGO.transform.SetAsFirstSibling();
         }
 
         // ============================================================
@@ -147,6 +170,7 @@ namespace UrbanScanVR.UI
             _mainMenu.gameObject.SetActive(true);
             _loadingPanel.gameObject.SetActive(false);
             _errorPanel.SetActive(false);
+            if (_bgCanvasGO != null) _bgCanvasGO.SetActive(true);
             _menuVisible = true;
             PositionCanvasInFrontOfPlayer();
         }
@@ -180,6 +204,7 @@ namespace UrbanScanVR.UI
             _mainMenu.gameObject.SetActive(false);
             _loadingPanel.gameObject.SetActive(false);
             _errorPanel.SetActive(false);
+            if (_bgCanvasGO != null) _bgCanvasGO.SetActive(false);
             _menuVisible = false;
         }
 
