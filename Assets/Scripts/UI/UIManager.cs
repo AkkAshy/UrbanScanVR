@@ -7,7 +7,7 @@ namespace UrbanScanVR.UI
     /// <summary>
     /// Управление VR UI.
     /// Создаёт World Space Canvas и все панели программно.
-    /// Canvas следует за игроком и управляется кнопкой Menu.
+    /// Современный glassmorphism-стиль с процедурными текстурами.
     /// </summary>
     public class UIManager : MonoBehaviour
     {
@@ -15,16 +15,15 @@ namespace UrbanScanVR.UI
         MainMenuPanel _mainMenu;
         LoadingPanel _loadingPanel;
         GameObject _errorPanel;
-        GameObject _vrStatusPanel;
 
         // === Компоненты ===
         Canvas _canvas;
         GameObject _canvasGO;
 
         // === Настройки ===
-        const float CANVAS_DISTANCE = 2.0f;   // метры перед игроком
-        const float CANVAS_HEIGHT = 1.5f;      // метры от пола
-        const float CANVAS_SCALE = 0.002f;     // масштаб (увеличенный для читаемости)
+        const float CANVAS_DISTANCE = 2.0f;
+        const float CANVAS_HEIGHT = 1.5f;
+        const float CANVAS_SCALE = 0.002f;
         const int CANVAS_WIDTH = 1200;
         const int CANVAS_HEIGHT_PX = 800;
 
@@ -36,83 +35,84 @@ namespace UrbanScanVR.UI
             CreateMainMenu();
             CreateLoadingPanel();
             CreateErrorPanel();
-
-            // Показываем меню по умолчанию
             ShowMainMenu();
         }
 
-        /// <summary>Создаёт World Space Canvas для VR</summary>
+        // ============================================================
+        // Canvas
+        // ============================================================
+
         void CreateCanvas()
         {
             _canvasGO = new GameObject("VR UI Canvas");
             _canvasGO.transform.SetParent(transform);
 
-            // Canvas в World Space
             _canvas = _canvasGO.AddComponent<Canvas>();
             _canvas.renderMode = RenderMode.WorldSpace;
-
-            // Масштаб: 1 pixel = 1mm
             _canvasGO.transform.localScale = Vector3.one * CANVAS_SCALE;
 
-            // Размер Canvas
-            var rectTransform = _canvasGO.GetComponent<RectTransform>();
-            rectTransform.sizeDelta = new Vector2(CANVAS_WIDTH, CANVAS_HEIGHT_PX);
+            var rt = _canvasGO.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(CANVAS_WIDTH, CANVAS_HEIGHT_PX);
 
-            // Canvas Scaler
             var scaler = _canvasGO.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = 10;
 
-            // Graphic Raycaster для XR взаимодействия
             _canvasGO.AddComponent<GraphicRaycaster>();
-
-            // Позиционируем перед игроком
             PositionCanvasInFrontOfPlayer();
         }
 
-        /// <summary>Главное меню: Импорт OBJ, Перезагрузить, Выход</summary>
+        // ============================================================
+        // Панели
+        // ============================================================
+
         void CreateMainMenu()
         {
-            var panel = CreatePanel("MainMenu", _canvasGO.transform);
-            _mainMenu = panel.AddComponent<MainMenuPanel>();
+            // Прозрачный контейнер на весь Canvas
+            var container = CreateTransparentContainer("MainMenu", _canvasGO.transform);
+            _mainMenu = container.AddComponent<MainMenuPanel>();
             _mainMenu.Initialize(this);
         }
 
-        /// <summary>Панель загрузки с прогресс-баром</summary>
         void CreateLoadingPanel()
         {
-            var panel = CreatePanel("LoadingPanel", _canvasGO.transform);
-            _loadingPanel = panel.AddComponent<LoadingPanel>();
+            var container = CreateTransparentContainer("LoadingPanel", _canvasGO.transform);
+            _loadingPanel = container.AddComponent<LoadingPanel>();
             _loadingPanel.Initialize();
-            panel.SetActive(false);
+            container.SetActive(false);
         }
 
-        /// <summary>Панель ошибок</summary>
         void CreateErrorPanel()
         {
-            _errorPanel = CreatePanel("ErrorPanel", _canvasGO.transform);
+            _errorPanel = CreateTransparentContainer("ErrorPanel", _canvasGO.transform);
 
-            // Заголовок
-            CreateText(_errorPanel.transform, "ErrorTitle", "Ошибка",
-                new Vector2(0, 100), 56, Color.red);
+            // Карточка
+            var card = CreateCard("ErrorCard", _errorPanel.transform, 600, 400,
+                UIHelper.CardBg, new Color(1f, 0.3f, 0.3f, 0.3f));
 
-            // Текст ошибки
-            CreateText(_errorPanel.transform, "ErrorMessage", "",
-                new Vector2(0, 0), 36, Color.white);
+            // Иконка ошибки
+            CreateText(card.transform, "ErrorIcon", "!",
+                new Vector2(0, 120), 80, UIHelper.Error);
 
-            // Кнопка ОК
-            CreateButton(_errorPanel.transform, "OKButton", "OK",
-                new Vector2(0, -120), () =>
+            CreateText(card.transform, "ErrorTitle", "Error",
+                new Vector2(0, 50), 42, UIHelper.TextPrimary);
+
+            CreateText(card.transform, "ErrorMessage", "",
+                new Vector2(0, -30), 28, UIHelper.TextSecondary);
+
+            CreateButton(card.transform, "OKButton", "OK",
+                new Vector2(0, -130), () =>
                 {
                     _errorPanel.SetActive(false);
                     ShowMainMenu();
-                });
+                }, new Vector2(200, 55), ButtonStyle.Accent);
 
             _errorPanel.SetActive(false);
         }
 
-        // === Публичные методы ===
+        // ============================================================
+        // Публичные методы
+        // ============================================================
 
-        /// <summary>Показать главное меню</summary>
         public void ShowMainMenu()
         {
             _mainMenu.gameObject.SetActive(true);
@@ -122,7 +122,6 @@ namespace UrbanScanVR.UI
             PositionCanvasInFrontOfPlayer();
         }
 
-        /// <summary>Показать панель загрузки</summary>
         public void ShowLoading()
         {
             _mainMenu.gameObject.SetActive(false);
@@ -131,25 +130,22 @@ namespace UrbanScanVR.UI
             _menuVisible = true;
         }
 
-        /// <summary>Обновить прогресс загрузки</summary>
         public void UpdateProgress(float progress, string status)
         {
             _loadingPanel.UpdateProgress(progress, status);
         }
 
-        /// <summary>Показать ошибку</summary>
         public void ShowError(string message)
         {
             _mainMenu.gameObject.SetActive(false);
             _loadingPanel.gameObject.SetActive(false);
             _errorPanel.SetActive(true);
 
-            var errorText = _errorPanel.transform.Find("ErrorMessage")?.GetComponent<Text>();
+            var errorText = _errorPanel.transform.Find("ErrorCard/ErrorMessage")?.GetComponent<Text>();
             if (errorText != null)
                 errorText.text = message;
         }
 
-        /// <summary>Скрыть всё UI</summary>
         public void HideAll()
         {
             _mainMenu.gameObject.SetActive(false);
@@ -158,33 +154,21 @@ namespace UrbanScanVR.UI
             _menuVisible = false;
         }
 
-        /// <summary>Переключить видимость меню (кнопка Menu на контроллере)</summary>
         public void ToggleMenu()
         {
-            if (_menuVisible)
-            {
-                HideAll();
-            }
-            else
-            {
-                ShowMainMenu();
-            }
+            if (_menuVisible) HideAll();
+            else ShowMainMenu();
         }
 
-        /// <summary>Показать экран "Подключите VR-шлем"</summary>
         public void ShowConnectVRScreen()
         {
             HideAll();
-
-            // Для экрана без VR переключаем canvas в Screen Space
             _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             _canvasGO.transform.localScale = Vector3.one;
-
             _mainMenu.gameObject.SetActive(true);
             _mainMenu.ShowVRNotConnected();
         }
 
-        /// <summary>Переключить canvas обратно в World Space (после подключения VR)</summary>
         public void SwitchToWorldSpace()
         {
             _canvas.renderMode = RenderMode.WorldSpace;
@@ -193,9 +177,10 @@ namespace UrbanScanVR.UI
             rt.sizeDelta = new Vector2(CANVAS_WIDTH, CANVAS_HEIGHT_PX);
         }
 
-        // === Утилиты для создания UI элементов ===
+        // ============================================================
+        // Утилиты позиционирования
+        // ============================================================
 
-        /// <summary>Ставим Canvas перед лицом игрока</summary>
         void PositionCanvasInFrontOfPlayer()
         {
             var xrOrigin = FindAnyObjectByType<XROrigin>();
@@ -209,48 +194,63 @@ namespace UrbanScanVR.UI
             _canvasGO.transform.position = cam.position
                 + forward * CANVAS_DISTANCE
                 + Vector3.up * (CANVAS_HEIGHT - cam.position.y);
-
             _canvasGO.transform.rotation = Quaternion.LookRotation(forward);
         }
 
-        /// <summary>Создаёт панель с полупрозрачным фоном</summary>
-        public static GameObject CreatePanel(string name, Transform parent)
+        // ============================================================
+        // UI Factory — создание элементов
+        // ============================================================
+
+        /// <summary>Прозрачный контейнер на весь Canvas (без фона)</summary>
+        public static GameObject CreateTransparentContainer(string name, Transform parent)
         {
-            var panelGO = new GameObject(name);
-            panelGO.transform.SetParent(parent, false);
-
-            var rect = panelGO.AddComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            // Полупрозрачный тёмный фон
-            var image = panelGO.AddComponent<Image>();
-            image.color = new Color(0.05f, 0.05f, 0.1f, 0.85f);
-
-            return panelGO;
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            return go;
         }
 
-        /// <summary>Создаёт UI Text</summary>
+        /// <summary>Карточка со скруглёнными углами и рамкой</summary>
+        public static GameObject CreateCard(string name, Transform parent,
+            int width, int height, Color fill, Color border, int radius = 24)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(width, height);
+
+            var img = go.AddComponent<Image>();
+            img.sprite = UIHelper.CreateRoundedSprite(width, height, radius, fill, border, 2);
+            img.type = Image.Type.Simple;
+            img.preserveAspect = false;
+
+            return go;
+        }
+
+        /// <summary>UI Text</summary>
         public static Text CreateText(Transform parent, string name, string text,
             Vector2 position, int fontSize, Color color)
         {
-            var textGO = new GameObject(name);
-            textGO.transform.SetParent(parent, false);
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
 
-            var rect = textGO.AddComponent<RectTransform>();
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(1000, 100);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchoredPosition = position;
+            rt.sizeDelta = new Vector2(1000, fontSize + 40);
 
-            var uiText = textGO.AddComponent<Text>();
+            var uiText = go.AddComponent<Text>();
             uiText.text = text;
             uiText.fontSize = fontSize;
             uiText.color = color;
             uiText.alignment = TextAnchor.MiddleCenter;
             uiText.horizontalOverflow = HorizontalWrapMode.Wrap;
             uiText.verticalOverflow = VerticalWrapMode.Overflow;
-            // Используем встроенный шрифт Arial
             uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (uiText.font == null)
                 uiText.font = Font.CreateDynamicFontFromOSFont("Arial", fontSize);
@@ -258,52 +258,147 @@ namespace UrbanScanVR.UI
             return uiText;
         }
 
-        /// <summary>Создаёт кнопку с текстом</summary>
+        // === Стили кнопок ===
+        public enum ButtonStyle { Accent, Secondary, Danger }
+
+        /// <summary>Кнопка со скруглёнными углами и стилем</summary>
         public static Button CreateButton(Transform parent, string name, string label,
-            Vector2 position, UnityEngine.Events.UnityAction onClick, Vector2? size = null)
+            Vector2 position, UnityEngine.Events.UnityAction onClick,
+            Vector2? size = null, ButtonStyle style = ButtonStyle.Accent)
         {
-            var btnSize = size ?? new Vector2(400, 80);
+            var btnSize = size ?? new Vector2(500, 65);
+            int w = (int)btnSize.x;
+            int h = (int)btnSize.y;
+
+            // Определяем цвета по стилю
+            Color topColor, bottomColor, borderColor, hoverColor, pressColor, textColor;
+            switch (style)
+            {
+                case ButtonStyle.Secondary:
+                    topColor = UIHelper.Secondary;
+                    bottomColor = UIHelper.Secondary;
+                    borderColor = UIHelper.SecondaryBorder;
+                    hoverColor = new Color(0.25f, 0.25f, 0.38f, 0.95f);
+                    pressColor = new Color(0.15f, 0.15f, 0.25f, 0.95f);
+                    textColor = UIHelper.TextPrimary;
+                    break;
+                case ButtonStyle.Danger:
+                    topColor = UIHelper.Danger;
+                    bottomColor = UIHelper.DangerDark;
+                    borderColor = new Color(1f, 0.3f, 0.3f, 0.2f);
+                    hoverColor = new Color(0.9f, 0.25f, 0.25f, 1f);
+                    pressColor = new Color(0.6f, 0.15f, 0.15f, 1f);
+                    textColor = UIHelper.TextPrimary;
+                    break;
+                default: // Accent
+                    topColor = UIHelper.Accent;
+                    bottomColor = UIHelper.AccentDark;
+                    borderColor = UIHelper.BorderLight;
+                    hoverColor = UIHelper.AccentHover;
+                    pressColor = new Color(0.12f, 0.30f, 0.70f, 1f);
+                    textColor = Color.white;
+                    break;
+            }
 
             var btnGO = new GameObject(name);
             btnGO.transform.SetParent(parent, false);
 
-            var rect = btnGO.AddComponent<RectTransform>();
-            rect.anchoredPosition = position;
-            rect.sizeDelta = btnSize;
+            var rt = btnGO.AddComponent<RectTransform>();
+            rt.anchoredPosition = position;
+            rt.sizeDelta = btnSize;
 
-            // Фон кнопки
-            var image = btnGO.AddComponent<Image>();
-            image.color = new Color(0.15f, 0.4f, 0.9f, 1f); // синий
+            var img = btnGO.AddComponent<Image>();
+            img.sprite = UIHelper.CreateGradientSprite(w, h, 12, topColor, bottomColor, borderColor, 2);
+            img.type = Image.Type.Simple;
 
-            // Button компонент
-            var button = btnGO.AddComponent<Button>();
-            var colors = button.colors;
-            colors.highlightedColor = new Color(0.2f, 0.5f, 1f, 1f);
-            colors.pressedColor = new Color(0.1f, 0.3f, 0.7f, 1f);
-            button.colors = colors;
+            var btn = btnGO.AddComponent<Button>();
+            var colors = btn.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.15f, 1.15f, 1.15f, 1f);
+            colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.fadeDuration = 0.1f;
+            btn.colors = colors;
+            btn.onClick.AddListener(onClick);
 
-            button.onClick.AddListener(onClick);
+            // Текст
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(btnGO.transform, false);
 
-            // Текст на кнопке
-            var textGO = new GameObject("Label");
-            textGO.transform.SetParent(btnGO.transform, false);
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchorMin = Vector2.zero;
+            labelRT.anchorMax = Vector2.one;
+            labelRT.offsetMin = new Vector2(10, 0);
+            labelRT.offsetMax = new Vector2(-10, 0);
 
-            var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-
-            var uiText = textGO.AddComponent<Text>();
+            var uiText = labelGO.AddComponent<Text>();
             uiText.text = label;
-            uiText.fontSize = 40;
-            uiText.color = Color.white;
+            uiText.fontSize = Mathf.Clamp(h / 2, 20, 40);
+            uiText.color = textColor;
             uiText.alignment = TextAnchor.MiddleCenter;
             uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (uiText.font == null)
-                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 40);
+                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 32);
 
-            return button;
+            return btn;
+        }
+
+        /// <summary>Разделитель — горизонтальная линия</summary>
+        public static GameObject CreateSeparator(Transform parent, string name,
+            Vector2 position, float width = 500f)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchoredPosition = position;
+            rt.sizeDelta = new Vector2(width, 1);
+
+            var img = go.AddComponent<Image>();
+            img.color = UIHelper.Border;
+
+            return go;
+        }
+
+        /// <summary>Индикатор статуса: кружок + текст</summary>
+        public static (Image dot, Text label) CreateStatusIndicator(Transform parent,
+            string name, string text, Vector2 position, Color dotColor)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchoredPosition = position;
+            rt.sizeDelta = new Vector2(300, 36);
+
+            // Кружок
+            var dotGO = new GameObject("Dot");
+            dotGO.transform.SetParent(go.transform, false);
+
+            var dotRT = dotGO.AddComponent<RectTransform>();
+            dotRT.anchoredPosition = new Vector2(-100, 0);
+            dotRT.sizeDelta = new Vector2(18, 18);
+
+            var dotImg = dotGO.AddComponent<Image>();
+            dotImg.sprite = UIHelper.CreateCircleSprite(32, dotColor);
+
+            // Текст
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(go.transform, false);
+
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchoredPosition = new Vector2(15, 0);
+            labelRT.sizeDelta = new Vector2(250, 36);
+
+            var uiText = labelGO.AddComponent<Text>();
+            uiText.text = text;
+            uiText.fontSize = 26;
+            uiText.color = UIHelper.TextSecondary;
+            uiText.alignment = TextAnchor.MiddleLeft;
+            uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (uiText.font == null)
+                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 26);
+
+            return (dotImg, uiText);
         }
     }
 }

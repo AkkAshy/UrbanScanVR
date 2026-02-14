@@ -7,13 +7,13 @@ namespace UrbanScanVR.UI
 {
     /// <summary>
     /// Главное меню VR: Импорт OBJ, Перезагрузить сцену, Выход.
-    /// Индикатор статуса VR.
+    /// Центральная карточка в glassmorphism-стиле.
     /// </summary>
     public class MainMenuPanel : MonoBehaviour
     {
         UIManager _uiManager;
-        Text _titleText;
-        Text _vrStatusText;
+        Image _vrDot;
+        Text _vrLabel;
         GameObject _buttonsContainer;
         GameObject _vrNotConnectedContainer;
 
@@ -27,61 +27,78 @@ namespace UrbanScanVR.UI
         {
             var parent = transform;
 
+            // === Центральная карточка ===
+            var card = UIManager.CreateCard("MenuCard", parent, 700, 650,
+                UIHelper.CardBg, UIHelper.Border);
+
+            var cardT = card.transform;
+
             // === Заголовок ===
-            _titleText = UIManager.CreateText(parent, "Title", "UrbanScan VR",
-                new Vector2(0, 280), 72, new Color(0.3f, 0.7f, 1f));
+            UIManager.CreateText(cardT, "Title", "UrbanScan VR",
+                new Vector2(0, 250), 64, UIHelper.TextPrimary);
 
             // === Подзаголовок ===
-            UIManager.CreateText(parent, "Subtitle", "Просмотр 3D-сцен из LiDAR сканов",
-                new Vector2(0, 210), 36, new Color(0.7f, 0.7f, 0.7f));
+            UIManager.CreateText(cardT, "Subtitle", "3D LiDAR Viewer",
+                new Vector2(0, 190), 30, UIHelper.TextSecondary);
+
+            // === Разделитель ===
+            UIManager.CreateSeparator(cardT, "Sep1", new Vector2(0, 155), 550f);
 
             // === VR статус ===
-            _vrStatusText = UIManager.CreateText(parent, "VRStatus", "VR: подключён",
-                new Vector2(0, 155), 30, Color.green);
+            var (dot, label) = UIManager.CreateStatusIndicator(cardT,
+                "VRStatus", "VR Connected", new Vector2(0, 120), UIHelper.Success);
+            _vrDot = dot;
+            _vrLabel = label;
 
             // === Контейнер кнопок (нормальный режим) ===
             _buttonsContainer = new GameObject("Buttons");
-            _buttonsContainer.transform.SetParent(parent, false);
+            _buttonsContainer.transform.SetParent(cardT, false);
             var buttonsRect = _buttonsContainer.AddComponent<RectTransform>();
-            buttonsRect.anchorMin = Vector2.zero;
-            buttonsRect.anchorMax = Vector2.one;
-            buttonsRect.offsetMin = Vector2.zero;
-            buttonsRect.offsetMax = Vector2.zero;
+            buttonsRect.anchoredPosition = Vector2.zero;
+            buttonsRect.sizeDelta = new Vector2(700, 400);
 
-            // Кнопка "Импорт OBJ"
+            // Кнопка "Импорт OBJ" — основная
             UIManager.CreateButton(_buttonsContainer.transform, "ImportButton",
-                "Импорт OBJ", new Vector2(0, 50), OnImportClicked);
+                "Import OBJ", new Vector2(0, 40), OnImportClicked,
+                new Vector2(500, 70), UIManager.ButtonStyle.Accent);
 
-            // Кнопка "Перезагрузить сцену"
+            // Кнопка "Перезагрузить сцену" — вторичная
             UIManager.CreateButton(_buttonsContainer.transform, "ReloadButton",
-                "Перезагрузить сцену", new Vector2(0, -50), OnReloadClicked);
+                "Reload Scene", new Vector2(0, -50), OnReloadClicked,
+                new Vector2(500, 60), UIManager.ButtonStyle.Secondary);
 
-            // Кнопка "Выход"
+            // Разделитель перед Exit
+            UIManager.CreateSeparator(_buttonsContainer.transform, "Sep2",
+                new Vector2(0, -110), 400f);
+
+            // Кнопка "Выход" — danger
             UIManager.CreateButton(_buttonsContainer.transform, "ExitButton",
-                "Выход", new Vector2(0, -150), OnExitClicked,
-                new Vector2(300, 60));
+                "Exit", new Vector2(0, -160), OnExitClicked,
+                new Vector2(200, 50), UIManager.ButtonStyle.Danger);
 
             // === Контейнер "VR не подключен" ===
             _vrNotConnectedContainer = new GameObject("VRNotConnected");
-            _vrNotConnectedContainer.transform.SetParent(parent, false);
+            _vrNotConnectedContainer.transform.SetParent(cardT, false);
             var nvrRect = _vrNotConnectedContainer.AddComponent<RectTransform>();
-            nvrRect.anchorMin = Vector2.zero;
-            nvrRect.anchorMax = Vector2.one;
-            nvrRect.offsetMin = Vector2.zero;
-            nvrRect.offsetMax = Vector2.zero;
+            nvrRect.anchoredPosition = Vector2.zero;
+            nvrRect.sizeDelta = new Vector2(700, 400);
+
+            UIManager.CreateText(_vrNotConnectedContainer.transform, "ConnectIcon",
+                "!", new Vector2(0, 60), 72, UIHelper.Error);
 
             UIManager.CreateText(_vrNotConnectedContainer.transform, "ConnectMsg",
-                "Подключите VR-шлем\nи нажмите \"Повторить\"",
-                new Vector2(0, 50), 48, Color.white);
+                "VR headset not connected\nPlease connect and retry",
+                new Vector2(0, -20), 36, UIHelper.TextPrimary);
 
             UIManager.CreateButton(_vrNotConnectedContainer.transform, "RetryButton",
-                "Повторить", new Vector2(0, -80), OnRetryVR);
+                "Retry Connection", new Vector2(0, -120), OnRetryVR,
+                new Vector2(400, 65), UIManager.ButtonStyle.Accent);
 
             _vrNotConnectedContainer.SetActive(false);
 
-            // === Нижняя строка ===
-            UIManager.CreateText(parent, "Footer", "iMax IT Company  |  UrbanScan v1.0",
-                new Vector2(0, -340), 24, new Color(0.4f, 0.4f, 0.4f));
+            // === Футер ===
+            UIManager.CreateText(cardT, "Footer", "iMax IT Company  |  UrbanScan v1.0",
+                new Vector2(0, -290), 22, new Color(0.4f, 0.4f, 0.45f, 0.6f));
         }
 
         /// <summary>Показать экран "VR не подключен"</summary>
@@ -89,8 +106,9 @@ namespace UrbanScanVR.UI
         {
             _buttonsContainer.SetActive(false);
             _vrNotConnectedContainer.SetActive(true);
-            _vrStatusText.text = "VR: не подключён";
-            _vrStatusText.color = Color.red;
+            _vrLabel.text = "VR Disconnected";
+            _vrLabel.color = UIHelper.Error;
+            _vrDot.sprite = UIHelper.CreateCircleSprite(32, UIHelper.Error);
         }
 
         /// <summary>Показать нормальное меню</summary>
@@ -98,20 +116,21 @@ namespace UrbanScanVR.UI
         {
             _buttonsContainer.SetActive(true);
             _vrNotConnectedContainer.SetActive(false);
-            _vrStatusText.text = "VR: подключён";
-            _vrStatusText.color = Color.green;
+            _vrLabel.text = "VR Connected";
+            _vrLabel.color = UIHelper.TextSecondary;
+            _vrDot.sprite = UIHelper.CreateCircleSprite(32, UIHelper.Success);
         }
 
         // === Обработчики кнопок ===
 
         void OnImportClicked()
         {
-            Debug.Log("[MainMenu] Импорт OBJ");
+            Debug.Log("[MainMenu] Import OBJ");
 
             var importService = FindAnyObjectByType<FileImportService>();
             if (importService == null)
             {
-                _uiManager.ShowError("FileImportService не найден!");
+                _uiManager.ShowError("FileImportService not found!");
                 return;
             }
 
@@ -165,7 +184,7 @@ namespace UrbanScanVR.UI
 
         void OnReloadClicked()
         {
-            Debug.Log("[MainMenu] Перезагрузка сцены");
+            Debug.Log("[MainMenu] Reload Scene");
 
             // Удаляем текущую модель
             var importService = FindAnyObjectByType<FileImportService>();
@@ -174,7 +193,7 @@ namespace UrbanScanVR.UI
                 Destroy(importService.CurrentModel);
             }
 
-            // Удаляем коллайдер пола (если был создан SceneSetupService)
+            // Удаляем коллайдер пола
             var floorCollider = GameObject.Find("FloorCollider");
             if (floorCollider != null)
                 Destroy(floorCollider);
@@ -184,7 +203,7 @@ namespace UrbanScanVR.UI
 
         void OnExitClicked()
         {
-            Debug.Log("[MainMenu] Выход");
+            Debug.Log("[MainMenu] Exit");
 
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
@@ -195,7 +214,7 @@ namespace UrbanScanVR.UI
 
         void OnRetryVR()
         {
-            Debug.Log("[MainMenu] Повторная попытка подключения VR");
+            Debug.Log("[MainMenu] Retry VR connection");
 
             var bootstrap = FindAnyObjectByType<Bootstrap.AppBootstrap>();
             if (bootstrap != null)
