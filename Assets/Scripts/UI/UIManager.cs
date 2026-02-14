@@ -58,75 +58,7 @@ namespace UrbanScanVR.UI
             scaler.dynamicPixelsPerUnit = 10;
 
             _canvasGO.AddComponent<GraphicRaycaster>();
-
-            // === Фоновое изображение (на весь Canvas) ===
-            CreateBackground();
-
             PositionCanvasInFrontOfPlayer();
-        }
-
-        /// <summary>
-        /// Фоновое изображение на весь Canvas.
-        /// Положи картинку в Assets/Resources/background.png (или .jpg)
-        /// </summary>
-        void CreateBackground()
-        {
-            var bgTex = Resources.Load<Texture2D>("background");
-            if (bgTex == null)
-            {
-                Debug.Log("[UIManager] No background image found in Resources/background — using gradient fallback");
-                CreateGradientBackground();
-                return;
-            }
-
-            var bgGO = new GameObject("Background");
-            bgGO.transform.SetParent(_canvasGO.transform, false);
-
-            var bgRT = bgGO.AddComponent<RectTransform>();
-            bgRT.anchorMin = Vector2.zero;
-            bgRT.anchorMax = Vector2.one;
-            bgRT.offsetMin = Vector2.zero;
-            bgRT.offsetMax = Vector2.zero;
-
-            var bgImg = bgGO.AddComponent<Image>();
-            bgImg.sprite = Sprite.Create(bgTex,
-                new Rect(0, 0, bgTex.width, bgTex.height),
-                new Vector2(0.5f, 0.5f));
-            bgImg.type = Image.Type.Simple;
-            bgImg.preserveAspect = false;
-
-            // Слегка затемняем, чтобы текст и карточки читались
-            bgImg.color = new Color(0.7f, 0.7f, 0.7f, 0.95f);
-
-            // Убираем raycast чтобы фон не блокировал клики
-            bgImg.raycastTarget = false;
-
-            // Фон всегда снизу
-            bgGO.transform.SetAsFirstSibling();
-        }
-
-        /// <summary>Градиентный фон-заглушка если картинки нет</summary>
-        void CreateGradientBackground()
-        {
-            var bgGO = new GameObject("Background");
-            bgGO.transform.SetParent(_canvasGO.transform, false);
-
-            var bgRT = bgGO.AddComponent<RectTransform>();
-            bgRT.anchorMin = Vector2.zero;
-            bgRT.anchorMax = Vector2.one;
-            bgRT.offsetMin = Vector2.zero;
-            bgRT.offsetMax = Vector2.zero;
-
-            var bgImg = bgGO.AddComponent<Image>();
-            bgImg.sprite = UIHelper.CreateGradientSprite(
-                CANVAS_WIDTH, CANVAS_HEIGHT_PX, 0,
-                new Color(0.08f, 0.06f, 0.18f, 0.95f),  // верх — тёмно-фиолетовый
-                new Color(0.02f, 0.02f, 0.08f, 0.95f),  // низ — почти чёрный
-                Color.clear, 0);
-            bgImg.type = Image.Type.Simple;
-            bgImg.raycastTarget = false;
-
-            bgGO.transform.SetAsFirstSibling();
         }
 
         // ============================================================
