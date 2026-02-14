@@ -114,8 +114,8 @@ namespace Editor
             // Базовые настройки
             QualitySettings.vSyncCount = 0;          // VR сам управляет vsync
             QualitySettings.antiAliasing = 4;         // 4x MSAA
-            QualitySettings.shadowResolution = ShadowResolution.Medium;
-            QualitySettings.shadows = ShadowQuality.HardOnly;
+            QualitySettings.shadowResolution = UnityEngine.ShadowResolution.Medium;
+            QualitySettings.shadows = UnityEngine.ShadowQuality.HardOnly;
         }
 
         /// <summary>Настройки плеера (название, рендеринг, input)</summary>
@@ -139,7 +139,8 @@ namespace Editor
                 BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_Standard);
 
             // Input System: Both (новый + старый) для совместимости с XR Toolkit
-            PlayerSettings.SetActiveInputHandler(PlayerSettings.InputActionPropertyType.Both);
+            // Этот параметр устанавливается через ProjectSettings.asset напрямую
+            SetActiveInputHandler(2); // 0=Old, 1=New, 2=Both
 
             // Fullscreen по умолчанию
             PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
@@ -337,6 +338,39 @@ namespace Editor
             {
                 Debug.LogWarning($"[UrbanScan] Тип не найден: {typeName} — будет добавлен вручную");
             }
+        }
+
+        /// <summary>Устанавливает Active Input Handler через ProjectSettings.asset</summary>
+        /// <param name="value">0=Old, 1=New, 2=Both</param>
+        static void SetActiveInputHandler(int value)
+        {
+            string settingsPath = "ProjectSettings/ProjectSettings.asset";
+            string fullPath = System.IO.Path.Combine(
+                System.IO.Directory.GetCurrentDirectory(), settingsPath);
+
+            if (!System.IO.File.Exists(fullPath))
+            {
+                Debug.LogWarning("[UrbanScan] ProjectSettings.asset не найден, пропускаю настройку Input Handler");
+                return;
+            }
+
+            string content = System.IO.File.ReadAllText(fullPath);
+
+            // Ищем строку activeInputHandler и заменяем значение
+            if (content.Contains("activeInputHandler:"))
+            {
+                content = System.Text.RegularExpressions.Regex.Replace(
+                    content, @"activeInputHandler:\s*\d+",
+                    $"activeInputHandler: {value}");
+            }
+            else
+            {
+                // Добавляем перед последней строкой
+                content = content.TrimEnd() + $"\n  activeInputHandler: {value}\n";
+            }
+
+            System.IO.File.WriteAllText(fullPath, content);
+            Debug.Log($"[UrbanScan] Active Input Handler установлен: {value} (Both)");
         }
     }
 }

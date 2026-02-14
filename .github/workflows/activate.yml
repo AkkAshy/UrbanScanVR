@@ -24,7 +24,7 @@ jobs:
         id: alf
         run: |
           docker run --rm -v "$PWD:/output" \
-            unityci/editor:ubuntu-2022.3.45f1-windows-mono-3 \
+            unityci/editor:ubuntu-2022.3.62f3-windows-mono-3 \
             bash -c '
               unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout -quit || true
               cp /*.alf /output/ 2>/dev/null || true
