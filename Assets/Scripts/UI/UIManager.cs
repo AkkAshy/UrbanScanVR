@@ -58,7 +58,36 @@ namespace UrbanScanVR.UI
             scaler.dynamicPixelsPerUnit = 10;
 
             _canvasGO.AddComponent<GraphicRaycaster>();
+            CreateBackground();
             PositionCanvasInFrontOfPlayer();
+        }
+
+        /// <summary>Фоновое изображение на весь Canvas из Resources/background</summary>
+        void CreateBackground()
+        {
+            var bgTex = Resources.Load<Texture2D>("background");
+            if (bgTex == null) return;
+
+            var bgGO = new GameObject("Background");
+            bgGO.transform.SetParent(_canvasGO.transform, false);
+
+            var bgRT = bgGO.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.sprite = Sprite.Create(bgTex,
+                new Rect(0, 0, bgTex.width, bgTex.height),
+                new Vector2(0.5f, 0.5f));
+            bgImg.type = Image.Type.Simple;
+            bgImg.preserveAspect = false;
+
+            // Затемняем чтобы карточка и текст читались
+            bgImg.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            bgImg.raycastTarget = false;
+            bgGO.transform.SetAsFirstSibling();
         }
 
         // ============================================================
