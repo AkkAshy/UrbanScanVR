@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using Unity.XR.CoreUtils;
 
 namespace UrbanScanVR.UI
@@ -145,7 +144,7 @@ namespace UrbanScanVR.UI
             _loadingPanel.gameObject.SetActive(false);
             _errorPanel.SetActive(true);
 
-            var errorText = _errorPanel.transform.Find("ErrorMessage")?.GetComponent<TextMeshProUGUI>();
+            var errorText = _errorPanel.transform.Find("ErrorMessage")?.GetComponent<Text>();
             if (errorText != null)
                 errorText.text = message;
         }
@@ -233,8 +232,8 @@ namespace UrbanScanVR.UI
             return panelGO;
         }
 
-        /// <summary>Создаёт TextMeshPro текст</summary>
-        public static TextMeshProUGUI CreateText(Transform parent, string name, string text,
+        /// <summary>Создаёт UI Text</summary>
+        public static Text CreateText(Transform parent, string name, string text,
             Vector2 position, int fontSize, Color color)
         {
             var textGO = new GameObject(name);
@@ -244,14 +243,19 @@ namespace UrbanScanVR.UI
             rect.anchoredPosition = position;
             rect.sizeDelta = new Vector2(1000, 100);
 
-            var tmp = textGO.AddComponent<TextMeshProUGUI>();
-            tmp.text = text;
-            tmp.fontSize = fontSize;
-            tmp.color = color;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.enableWordWrapping = true;
+            var uiText = textGO.AddComponent<Text>();
+            uiText.text = text;
+            uiText.fontSize = fontSize;
+            uiText.color = color;
+            uiText.alignment = TextAnchor.MiddleCenter;
+            uiText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            uiText.verticalOverflow = VerticalWrapMode.Overflow;
+            // Используем встроенный шрифт Arial
+            uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (uiText.font == null)
+                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", fontSize);
 
-            return tmp;
+            return uiText;
         }
 
         /// <summary>Создаёт кнопку с текстом</summary>
@@ -290,11 +294,14 @@ namespace UrbanScanVR.UI
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            var tmp = textGO.AddComponent<TextMeshProUGUI>();
-            tmp.text = label;
-            tmp.fontSize = 28;
-            tmp.color = Color.white;
-            tmp.alignment = TextAlignmentOptions.Center;
+            var uiText = textGO.AddComponent<Text>();
+            uiText.text = label;
+            uiText.fontSize = 28;
+            uiText.color = Color.white;
+            uiText.alignment = TextAnchor.MiddleCenter;
+            uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (uiText.font == null)
+                uiText.font = Font.CreateDynamicFontFromOSFont("Arial", 28);
 
             return button;
         }

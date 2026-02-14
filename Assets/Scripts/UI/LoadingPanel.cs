@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace UrbanScanVR.UI
 {
@@ -11,8 +10,8 @@ namespace UrbanScanVR.UI
     public class LoadingPanel : MonoBehaviour
     {
         Image _progressFill;
-        TextMeshProUGUI _statusText;
-        TextMeshProUGUI _percentText;
+        Text _statusText;
+        Text _percentText;
 
         public void Initialize()
         {

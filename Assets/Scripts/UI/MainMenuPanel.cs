@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using UrbanScanVR.Import;
 using UrbanScanVR.Scene;
 
@@ -13,8 +12,8 @@ namespace UrbanScanVR.UI
     public class MainMenuPanel : MonoBehaviour
     {
         UIManager _uiManager;
-        TextMeshProUGUI _titleText;
-        TextMeshProUGUI _vrStatusText;
+        Text _titleText;
+        Text _vrStatusText;
         GameObject _buttonsContainer;
         GameObject _vrNotConnectedContainer;
 
