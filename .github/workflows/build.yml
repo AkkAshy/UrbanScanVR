@@ -1,0 +1,69 @@
+# Сборка UrbanScanVR — Windows x64 Standalone
+# Требует UNITY_LICENSE в GitHub Secrets (получи через activate.yml)
+
+name: Build UrbanScanVR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch: {} # ручной запуск
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout кода
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      # 2. Кэш Unity Library (ускоряет повторные сборки)
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-StandaloneWindows64-${{ hashFiles('Assets/**', 'Packages/manifest.json') }}
+          restore-keys: |
+            Library-StandaloneWindows64-
+            Library-
+
+      # 3. Конфигурация проекта (создание URP, XR, сцены)
+      - name: Configure Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: 2022.3.45f1
+          targetPlatform: StandaloneWindows64
+          buildMethod: Editor.ProjectConfigurator.ConfigureProject
+
+      # 4. Сборка Windows x64 Standalone
+      - name: Build Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: 2022.3.45f1
+          targetPlatform: StandaloneWindows64
+          buildMethod: Editor.BuildScript.PerformBuild
+
+      # 5. Загрузка готового билда как artifact
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: UrbanScanVR-Windows
+          path: Builds
+          retention-days: 14
