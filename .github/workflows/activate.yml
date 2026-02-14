@@ -1,11 +1,9 @@
-# Активация Unity Personal лицензии на GitHub runner
-# Результат: .ulf файл в артефакте → содержимое добавить в UNITY_LICENSE secret
+# Активация Unity Personal лицензии
+# Использует puppeteer для автоматической активации .alf → .ulf
 #
-# Шаги:
-# 1. Запусти этот workflow
-# 2. Unity активируется через email/password
-# 3. .ulf файл загружается как artifact
-# 4. Скачай artifact, скопируй содержимое .ulf в GitHub Secret UNITY_LICENSE
+# После выполнения:
+# 1. Скачай artifact unity-license-files
+# 2. Скопируй содержимое .ulf в GitHub Secret UNITY_LICENSE
 
 name: Activate Unity License
 
@@ -14,59 +12,70 @@ on:
 
 jobs:
   activate:
-    name: Activate Personal License
+    name: Get Unity License
     runs-on: ubuntu-latest
-    container:
-      image: unityci/editor:ubuntu-2022.3.45f1-windows-mono-3
 
     steps:
-      - name: Activate Unity
-        continue-on-error: true
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Шаг 1: Генерация .alf на этой машине
+      - name: Generate .alf file
+        id: alf
         run: |
-          echo "=== Attempting Unity activation ==="
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -logFile /dev/stdout \
-            -username "$UNITY_EMAIL" \
-            -password "$UNITY_PASSWORD" \
+          docker run --rm -v "$PWD:/output" \
+            unityci/editor:ubuntu-2022.3.45f1-windows-mono-3 \
+            bash -c '
+              unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout -quit || true
+              cp /*.alf /output/ 2>/dev/null || true
+              cp /Unity*.alf /output/ 2>/dev/null || true
+            '
+          ALF_FILE=$(ls *.alf 2>/dev/null | head -1)
+          echo "alf_file=$ALF_FILE" >> "$GITHUB_OUTPUT"
+          echo "Found ALF: $ALF_FILE"
+          cat "$ALF_FILE" | head -5
+
+      # Шаг 2: Активация через unity-license-activate (puppeteer)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install unity-license-activate
+        run: npm install -g unity-license-activate
+
+      - name: Activate license via puppeteer
+        run: |
+          ALF_FILE="${{ steps.alf.outputs.alf_file }}"
+          echo "Activating with ALF: $ALF_FILE"
+
+          # unity-license-activate автоматизирует браузер и получает .ulf
+          unity-license-activate \
+            "${{ secrets.UNITY_EMAIL }}" \
+            "${{ secrets.UNITY_PASSWORD }}" \
+            "$ALF_FILE" \
             || true
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
 
-      - name: Find and copy license file
+          echo "=== Looking for .ulf files ==="
+          find . -name "*.ulf" 2>/dev/null
+          find /tmp -name "*.ulf" 2>/dev/null || true
+          ls -la *.ulf 2>/dev/null || echo "No .ulf in current dir"
+
+      # Шаг 3: Собрать все файлы
+      - name: Collect license files
         run: |
-          echo "=== Searching for license files ==="
-          # Новый формат (Unity 2022+)
-          find / -name "*.xml" -path "*/Unity/*" -type f 2>/dev/null | head -20
-          find / -name "*.ulf" -type f 2>/dev/null | head -20
-          find / -name "*lic*" -path "*/Unity/*" -type f 2>/dev/null | head -20
-
-          mkdir -p /output
-
-          # Копируем все возможные файлы лицензии
-          cp /root/.local/share/unity3d/Unity/Unity_lic.ulf /output/ 2>/dev/null || true
-          cp /root/.local/share/unity3d/Unity/UnityEntitlementLicense.xml /output/ 2>/dev/null || true
-
-          # Ищем в других местах
-          find / -name "Unity_lic.ulf" -exec cp {} /output/ \; 2>/dev/null || true
-          find / -name "UnityEntitlementLicense.xml" -exec cp {} /output/ \; 2>/dev/null || true
-
-          echo "=== Files found ==="
-          ls -la /output/ || echo "No files found"
-
-          # Показываем содержимое (для отладки)
-          for f in /output/*; do
-            echo "--- $f ---"
-            head -5 "$f" 2>/dev/null || true
-          done
+          mkdir -p license-output
+          cp *.ulf license-output/ 2>/dev/null || true
+          cp *.alf license-output/ 2>/dev/null || true
+          find /tmp -name "*.ulf" -exec cp {} license-output/ \; 2>/dev/null || true
+          find . -name "*.ulf" -exec cp {} license-output/ \; 2>/dev/null || true
+          echo "=== Collected ==="
+          ls -la license-output/
 
       - name: Upload license files
         uses: actions/upload-artifact@v4
         with:
           name: unity-license-files
-          path: /output/
+          path: license-output/
           retention-days: 1
           if-no-files-found: warn
